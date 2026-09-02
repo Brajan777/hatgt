@@ -367,6 +367,16 @@ export const FAQ_ITEMS: FAQItem[] = [
     category: 'cambios',
     question: '¿Tienen garantía o cambio si no me queda?',
     answer: 'Nuestras gorras cuentan con broches snapback de 7 puntos y hebillas ajustables para adaptarse a cabezas de 54 a 62 cm. Si necesitas cambio por defecto de fábrica, te lo cambiamos sin costo adicional en los primeros 7 días hábiles.'
+  },
+  {
+    category: 'calidad',
+    question: '¿Qué modelos de gorras retro tienen y cuáles son los precios?',
+    answer: 'En HATGT encuentras Snapbacks clásicas de corona alta (Q175-Q190), Dad Caps de pana fina acanalada (Q155-Q160), Truckers de malla transpirable (Q145) y Campers 5-Panel urbanas (Q185). En compras de Q300 o más el envío es gratis.'
+  },
+  {
+    category: 'pagos',
+    question: '¿Cómo hacer mi pedido por WhatsApp en HATGT?',
+    answer: 'Elige la gorra que más te guste en nuestro catálogo, toca el botón de WhatsApp y se generará un mensaje automático con tu modelo seleccionado. Solo indicas tu dirección de entrega y te despachamos inmediatamente con cobro contra entrega.'
   }
 ];
 

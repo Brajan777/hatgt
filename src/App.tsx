@@ -972,6 +972,66 @@ export default function App() {
       {/* --- SECCIÓN DE PREGUNTAS FRECUENTES --- */}
       <FAQSection />
 
+      {/* --- SECCIÓN INFORMATIVA SEO / AEO (RESPUESTAS RÁPIDAS PARA CLIENTES E IA) --- */}
+      <section className="py-10 sm:py-12 bg-[#F3EED9] border-t-2 border-b-2 border-stone-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 border-2 border-stone-800 shadow-[4px_4px_0px_0px_rgba(28,25,23,1)]">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-stone-200">
+              <div>
+                <span className="text-xs font-black bg-amber-400 text-stone-950 px-2.5 py-1 rounded-md border border-stone-900 uppercase tracking-wider inline-block">
+                  Guía Oficial del Comprador • Guatemala
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black text-stone-900 mt-2">
+                  ¿Por qué comprar gorras retro en HATGT Guatemala?
+                </h2>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-bold text-stone-600 bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200 w-fit">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Información verificada 2026
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-6">
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-black text-stone-900 flex items-center gap-1.5">
+                  <span className="text-red-600">🇬🇹</span> 100% Pago Contra Entrega
+                </h3>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Pides sin tarjeta ni depósitos por adelantado. Le pagas al mensajero en efectivo o transferencia al recibir tu paquete en tu puerta.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-black text-stone-900 flex items-center gap-1.5">
+                  <span className="text-amber-600">⚡</span> Envíos en 24 a 48 Horas
+                </h3>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Entrega express en Ciudad de Guatemala, Mixco y Villa Nueva (24h) y envíos a los 21 departamentos por Cargo Expreso y Guatex (24-48h).
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-black text-stone-900 flex items-center gap-1.5">
+                  <span className="text-emerald-600">📦</span> Cajas Rígidas Anti-Deformación
+                </h3>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Cada gorra viaja protegida en caja cúbica reforzada de 450g con precinto para que la corona rígida y la visera lleguen impecables.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-black text-stone-900 flex items-center gap-1.5">
+                  <span className="text-indigo-600">💰</span> Precios Claros en Quetzales
+                </h3>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Modelos desde Q145 hasta Q190 GTQ. Envío gratis en compras de 2 gorras o más (Q300+). Sin comisiones ocultas ni sorpresas.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* --- FOOTER RETRO --- */}
       <footer className="bg-stone-900 text-stone-300 border-t-4 border-stone-900 pt-12 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
