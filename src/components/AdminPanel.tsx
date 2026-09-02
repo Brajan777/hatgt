@@ -23,9 +23,6 @@ import {
   FileText, 
   Palette, 
   Sparkles,
-  Smartphone,
-  LayoutTemplate,
-  MessageCircle,
   Check,
   ImagePlus
 } from 'lucide-react';

@@ -112,6 +112,3 @@ export interface HeroConfig {
   whatsappNumber: string;
   heroImageFit?: 'contain' | 'cover';
 }
-
-
-
