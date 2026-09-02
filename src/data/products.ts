@@ -404,6 +404,8 @@ export const DEFAULT_HERO_CONFIG: HeroConfig = {
   bannerBadgeText: '¡Toca para Ver Fotos!',
   ctaButtonText: 'VER CATÁLOGO & PRECIOS (GTQ)',
   announcementBarText: '🇬🇹 ¡Pagas en efectivo al recibir en los 22 departamentos! Envíos en 24 a 48 hrs',
-  whatsappNumber: '+502 5555-0199'
+  whatsappNumber: '+502 5555-0199',
+  heroImageFit: 'contain'
 };
+
 

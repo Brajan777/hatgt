@@ -110,6 +110,8 @@ export interface HeroConfig {
   ctaButtonText: string;
   announcementBarText: string;
   whatsappNumber: string;
+  heroImageFit?: 'contain' | 'cover';
 }
+
 
 

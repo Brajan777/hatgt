@@ -90,7 +90,7 @@ export const CapVisualInteractive: React.FC<CapVisualInteractiveProps> = ({
     imageUrl;
 
   return (
-    <div className={`relative w-full ${heightClasses[size]} bg-gradient-to-b from-[#FFFDF9] via-[#FAF6ED] to-[#F3EAD8] flex items-center justify-center p-3 sm:p-5 overflow-hidden rounded-xl border border-stone-300 select-none shadow-inner group/canvas`}>
+    <div className={`relative w-full ${heightClasses[size]} bg-gradient-to-b from-[#FFFDF9] via-[#FAF6ED] to-[#F3EAD8] flex items-center justify-center ${activePhoto ? 'p-1 sm:p-2' : 'p-3 sm:p-5'} overflow-hidden rounded-xl border border-stone-300 select-none shadow-inner group/canvas`}>
       
       {/* Background retro pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(#d97706_0.8px,transparent_0.8px)] [background-size:12px_12px] opacity-25 pointer-events-none" />
@@ -99,7 +99,7 @@ export const CapVisualInteractive: React.FC<CapVisualInteractiveProps> = ({
       
       {/* Angle label badge */}
       {showBadge && (
-        <div className="absolute top-2.5 right-2.5 bg-stone-900/90 text-amber-300 text-[9px] sm:text-[10px] font-black uppercase px-2.5 py-0.5 rounded border border-amber-400/50 shadow-sm z-10 tracking-wider">
+        <div className="absolute top-2.5 right-2.5 bg-stone-900/90 text-amber-300 text-[9px] sm:text-[10px] font-black uppercase px-2.5 py-0.5 rounded border border-amber-400/50 shadow-sm z-20 tracking-wider backdrop-blur-sm">
           {viewAngle === 'front' && 'Vista Frontal'}
           {viewAngle === 'side' && 'Vista Lateral 45°'}
           {viewAngle === 'back' && 'Broche / Ajuste'}
@@ -108,19 +108,27 @@ export const CapVisualInteractive: React.FC<CapVisualInteractiveProps> = ({
       )}
 
       {/* Tri-color Chapín Flag Stripe */}
-      <div className="absolute top-3 left-3 flex flex-col gap-1 opacity-80 pointer-events-none z-10">
+      <div className="absolute top-3 left-3 flex flex-col gap-1 opacity-80 pointer-events-none z-20">
         <div className="w-7 sm:w-9 h-1 bg-red-600 rounded-full" />
         <div className="w-5 sm:w-7 h-1 bg-amber-400 rounded-full" />
         <div className="w-8 sm:w-11 h-1 bg-emerald-600 rounded-full" />
       </div>
 
-      {/* --- FOTO REAL PERSONALIZADA (SI EXISTE) --- */}
+      {/* --- FOTO REAL PERSONALIZADA (ADAPTADA AL MARCO) --- */}
       {activePhoto ? (
-        <div className="relative w-full h-full flex items-center justify-center p-2 z-0">
+        <div className="relative w-full h-full flex items-center justify-center overflow-hidden z-0 rounded-lg">
+          {/* Fondo difuminado ambiental para que cualquier formato de foto llene el marco de forma armónica */}
+          <img 
+            src={activePhoto} 
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover blur-xl opacity-25 scale-125 pointer-events-none"
+          />
+          {/* Foto nítida de la gorra encuadrada sin deformación ni cortes */}
           <img 
             src={activePhoto} 
             alt={patchLabel}
-            className="max-h-full max-w-full object-contain rounded-lg drop-shadow-[0_12px_14px_rgba(0,0,0,0.25)] transition-transform duration-300 group-hover/canvas:scale-105"
+            className="relative z-10 w-full h-full max-h-full max-w-full object-contain p-2 sm:p-3 drop-shadow-[0_12px_18px_rgba(0,0,0,0.3)] transition-transform duration-300 group-hover/canvas:scale-105"
             referrerPolicy="no-referrer"
           />
         </div>

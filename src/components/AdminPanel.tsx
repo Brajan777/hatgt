@@ -1539,6 +1539,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             onChange={(e) => setEditingHero(prev => ({ ...prev, customImageUrl: e.target.value || undefined }))}
                             className="w-full bg-stone-900 border border-stone-700 rounded-xl p-2.5 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-400"
                           />
+
+                          {/* Modo de Adaptación al Marco */}
+                          <div className="pt-2 border-t border-stone-800/80">
+                            <label className="block text-[11px] font-bold text-stone-300 mb-2">
+                              Formato y Ajuste de la Foto al Marco:
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setEditingHero(prev => ({ ...prev, heroImageFit: 'contain' }))}
+                                className={`p-2.5 rounded-xl border text-left transition-all ${
+                                  (editingHero.heroImageFit || 'contain') === 'contain'
+                                    ? 'bg-amber-400/20 border-amber-400 text-amber-300 font-bold shadow-sm'
+                                    : 'bg-stone-900 border-stone-700 text-stone-400 hover:text-white'
+                                }`}
+                              >
+                                <span className="block text-xs font-black">Ajustar Completa (Recomendado)</span>
+                                <span className="block text-[10px] text-stone-400">Sin recortes, la gorra se ve al 100%</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingHero(prev => ({ ...prev, heroImageFit: 'cover' }))}
+                                className={`p-2.5 rounded-xl border text-left transition-all ${
+                                  editingHero.heroImageFit === 'cover'
+                                    ? 'bg-amber-400/20 border-amber-400 text-amber-300 font-bold shadow-sm'
+                                    : 'bg-stone-900 border-stone-700 text-stone-400 hover:text-white'
+                                }`}
+                              >
+                                <span className="block text-xs font-black">Llenar Marco (Banner)</span>
+                                <span className="block text-[10px] text-stone-400">Expande de borde a borde</span>
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
@@ -1727,11 +1760,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
                                 <div className="mb-2">
                                   {editingHero.customImageUrl ? (
-                                    <div className="w-full h-36 rounded-lg overflow-hidden bg-stone-900 border border-stone-700 flex items-center justify-center">
+                                    <div className="w-full h-36 rounded-lg overflow-hidden bg-stone-900 border border-stone-700 flex items-center justify-center relative">
+                                      {/* Ambient backdrop */}
+                                      <img 
+                                        src={editingHero.customImageUrl} 
+                                        alt="" 
+                                        aria-hidden="true"
+                                        className="absolute inset-0 w-full h-full object-cover blur-lg opacity-30 scale-125 pointer-events-none"
+                                      />
                                       <img 
                                         src={editingHero.customImageUrl} 
                                         alt="Gorra Portada" 
-                                        className="w-full h-full object-cover" 
+                                        className={`relative z-10 w-full h-full ${editingHero.heroImageFit === 'cover' ? 'object-cover' : 'object-contain p-2'} drop-shadow-md`}
                                         referrerPolicy="no-referrer"
                                       />
                                     </div>

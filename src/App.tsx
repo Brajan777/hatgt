@@ -553,11 +553,19 @@ export default function App() {
 
                 <div className="mb-4">
                   {heroConfig.customImageUrl ? (
-                    <div className="w-full h-64 rounded-xl overflow-hidden bg-stone-950 border-2 border-stone-700 flex items-center justify-center relative">
+                    <div className="w-full h-64 sm:h-72 rounded-xl overflow-hidden bg-stone-950 border-2 border-stone-700 flex items-center justify-center relative group">
+                      {/* Fondo difuminado ambiental para adaptar cualquier formato de foto */}
+                      <img 
+                        src={heroConfig.customImageUrl} 
+                        alt="" 
+                        aria-hidden="true"
+                        className="absolute inset-0 w-full h-full object-cover blur-xl opacity-35 scale-125 pointer-events-none"
+                      />
+                      {/* Imagen nítida adaptada al marco */}
                       <img 
                         src={heroConfig.customImageUrl} 
                         alt={featuredHeroProduct?.name || 'Gorra Hero'} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className={`relative z-10 w-full h-full ${heroConfig.heroImageFit === 'cover' ? 'object-cover' : 'object-contain p-3'} drop-shadow-[0_16px_24px_rgba(0,0,0,0.6)] group-hover:scale-105 transition-transform duration-300`}
                         referrerPolicy="no-referrer"
                       />
                     </div>
