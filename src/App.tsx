@@ -30,6 +30,16 @@ import { WishlistDrawer } from './components/WishlistDrawer';
 import { ReviewsSection } from './components/ReviewsSection';
 import { FAQSection } from './components/FAQSection';
 import { AdminPanel } from './components/AdminPanel';
+import { 
+  fetchProductsFromCloud, 
+  fetchHeroConfigFromCloud, 
+  fetchSalesFromCloud, 
+  syncProductToCloud, 
+  deleteProductFromCloud, 
+  syncHeroConfigToCloud, 
+  syncSaleToCloud, 
+  seedDatabaseIfEmpty
+} from './lib/supabase';
 
 export default function App() {
   // Products State with LocalStorage Persistence
@@ -138,6 +148,40 @@ export default function App() {
       console.error(e);
     }
   }, [heroConfig]);
+
+  // Carga inicial y sincronización con Supabase (Base de datos en la Nube)
+  useEffect(() => {
+    let isMounted = true;
+    const initCloudSync = async () => {
+      try {
+        // 1. Si las tablas de Supabase están recién creadas, poblar con datos iniciales
+        await seedDatabaseIfEmpty(INITIAL_PRODUCTS, DEFAULT_HERO_CONFIG);
+
+        // 2. Cargar productos desde Supabase
+        const cloudProducts = await fetchProductsFromCloud();
+        if (isMounted && cloudProducts && cloudProducts.length > 0) {
+          setProducts(cloudProducts);
+        }
+
+        // 3. Cargar configuración de la portada desde Supabase
+        const cloudHero = await fetchHeroConfigFromCloud();
+        if (isMounted && cloudHero) {
+          setHeroConfig(cloudHero);
+        }
+
+        // 4. Cargar ventas desde Supabase
+        const cloudSales = await fetchSalesFromCloud();
+        if (isMounted && cloudSales && cloudSales.length > 0) {
+          setSalesRecords(cloudSales);
+        }
+      } catch (err) {
+        console.warn('Error inicializando datos de Supabase:', err);
+      }
+    };
+
+    initCloudSync();
+    return () => { isMounted = false; };
+  }, []);
 
   const categories = [
     'Todas',
@@ -280,18 +324,22 @@ export default function App() {
       };
 
       setSalesRecords(prev => [newSale, ...prev]);
+      syncSaleToCloud(newSale);
 
       // Decrement stock & increment sales count in products catalog
       setProducts(prevProds => {
-        return prevProds.map(prod => {
+        const updatedProds = prevProds.map(prod => {
           const purchasedItem = cart.find(c => c.id === prod.id);
           if (purchasedItem) {
             const newStock = Math.max(0, prod.stock - purchasedItem.quantity);
             const newSales = (prod.salesCount || 0) + purchasedItem.quantity;
-            return { ...prod, stock: newStock, salesCount: newSales };
+            const up = { ...prod, stock: newStock, salesCount: newSales };
+            syncProductToCloud(up);
+            return up;
           }
           return prod;
         });
+        return updatedProds;
       });
     }
 
@@ -302,17 +350,26 @@ export default function App() {
   // Admin Management Functions
   const handleUpdateProduct = (updated: Product) => {
     setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
-    showToast(`✓ Gorra "${updated.name}" actualizada en la tienda.`);
+    syncProductToCloud(updated);
+    showToast(`✓ Gorra "${updated.name}" guardada y sincronizada en la nube.`);
   };
 
   const handleAddProduct = (newProduct: Product) => {
     setProducts(prev => [newProduct, ...prev]);
-    showToast(`✓ Nueva gorra "${newProduct.name}" agregada al catálogo.`);
+    syncProductToCloud(newProduct);
+    showToast(`✓ Nueva gorra "${newProduct.name}" publicada en la nube.`);
   };
 
   const handleDeleteProduct = (productId: string) => {
     setProducts(prev => prev.filter(p => p.id !== productId));
+    deleteProductFromCloud(productId);
     showToast(`Gorra eliminada del catálogo.`);
+  };
+
+  const handleUpdateHeroConfig = (config: HeroConfig) => {
+    setHeroConfig(config);
+    syncHeroConfigToCloud(config);
+    showToast('✓ Portada actualizada y sincronizada en la nube.');
   };
 
   const handleResetDefaults = () => {
@@ -321,7 +378,7 @@ export default function App() {
       setSalesRecords(INITIAL_SALES_RECORDS);
       localStorage.removeItem('hatgt_products_catalog');
       localStorage.removeItem('hatgt_sales_history');
-      showToast('Valores iniciales de fábrica restablecidos.');
+      showToast('Valores iniciales restablecidos.');
     }
   };
 
@@ -1068,7 +1125,7 @@ export default function App() {
         products={products}
         salesRecords={salesRecords}
         heroConfig={heroConfig}
-        onUpdateHeroConfig={setHeroConfig}
+        onUpdateHeroConfig={handleUpdateHeroConfig}
         onUpdateProduct={handleUpdateProduct}
         onAddProduct={handleAddProduct}
         onDeleteProduct={handleDeleteProduct}

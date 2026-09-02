@@ -24,11 +24,13 @@ import {
   Palette, 
   Sparkles,
   Check,
-  ImagePlus
+  ImagePlus,
+  Database
 } from 'lucide-react';
 import { CapAngle, CapColor, Product, SaleRecord, HeroConfig } from '../types';
 import { CapVisualInteractive } from './CapVisualInteractive';
 import { DEFAULT_HERO_CONFIG } from '../data/products';
+import { getSupabaseCredentials } from '../lib/supabase';
 
 interface AdminPanelProps {
   isOpen: boolean;
@@ -314,6 +316,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <span className="bg-red-600 text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-full border border-red-400">
                   HATGT 502
                 </span>
+                {getSupabaseCredentials().url ? (
+                  <span className="inline-flex items-center gap-1 bg-emerald-950/80 text-emerald-300 border border-emerald-500/60 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Nube Supabase Conectada
+                  </span>
+                ) : null}
               </div>
               <p className="text-[10px] sm:text-xs text-stone-400 font-medium truncate">Edición de Fotos, Textos, Portada y Catálogo</p>
             </div>
