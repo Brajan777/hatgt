@@ -1,4 +1,4 @@
-import { Product, ProductReview, DepartmentDeliveryInfo, FAQItem, SaleRecord } from '../types';
+import { Product, ProductReview, DepartmentDeliveryInfo, FAQItem, SaleRecord, HeroConfig } from '../types';
 
 export const PRODUCTS: Product[] = [
   {
@@ -393,3 +393,17 @@ export const UPSELL_ACCESSORIES = [
     desc: 'Bordado miniatura metálico con mosquetón'
   }
 ];
+
+export const DEFAULT_HERO_CONFIG: HeroConfig = {
+  badgeText: '⚡ COLECCIÓN RETRO GUATEMALA 2026',
+  badgeSubtext: '🇬🇹 Pago Contra Entrega en Todo el País',
+  titleLine1: 'GORRAS RETRO EN GUATEMALA',
+  titleHighlight: 'ESTILO VINTAGE QUE RESALTA.',
+  description: '¡Qué onda! En HATGT creamos y seleccionamos las mejores Snapbacks 90s, Dad Caps de pana fina y Truckers clásicas con coronas estructuradas que nunca pierden su forma. Explora cada detalle en 360° y recibe en tu puerta pagando en efectivo en los 22 departamentos.',
+  featuredProductId: 'gt-01',
+  bannerBadgeText: '¡Toca para Ver Fotos!',
+  ctaButtonText: 'VER CATÁLOGO & PRECIOS (GTQ)',
+  announcementBarText: '🇬🇹 ¡Pagas en efectivo al recibir en los 22 departamentos! Envíos en 24 a 48 hrs',
+  whatsappNumber: '+502 5555-0199'
+};
+

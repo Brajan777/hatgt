@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, 
   Lock, 
@@ -22,16 +22,24 @@ import {
   Copy, 
   FileText, 
   Palette, 
-  Sparkles
+  Sparkles,
+  Smartphone,
+  LayoutTemplate,
+  MessageCircle,
+  Check,
+  ImagePlus
 } from 'lucide-react';
-import { CapAngle, CapColor, Product, SaleRecord } from '../types';
+import { CapAngle, CapColor, Product, SaleRecord, HeroConfig } from '../types';
 import { CapVisualInteractive } from './CapVisualInteractive';
+import { DEFAULT_HERO_CONFIG } from '../data/products';
 
 interface AdminPanelProps {
   isOpen: boolean;
   onClose: () => void;
   products: Product[];
   salesRecords: SaleRecord[];
+  heroConfig: HeroConfig;
+  onUpdateHeroConfig: (config: HeroConfig) => void;
   onUpdateProduct: (product: Product) => void;
   onAddProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
@@ -44,6 +52,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onClose,
   products,
   salesRecords,
+  heroConfig,
+  onUpdateHeroConfig,
   onUpdateProduct,
   onAddProduct,
   onDeleteProduct,
@@ -52,8 +62,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'sales'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'hero' | 'dashboard' | 'sales'>('products');
   
+  // Hero Editing State
+  const [editingHero, setEditingHero] = useState<HeroConfig>(() => ({ ...heroConfig }));
+
+  useEffect(() => {
+    setEditingHero({ ...heroConfig });
+  }, [heroConfig]);
+
+  const fileInputRefHero = useRef<HTMLInputElement>(null);
+
   // Product Edit State
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -61,6 +80,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [previewAngle, setPreviewAngle] = useState<CapAngle>('front');
   const [searchQuery, setSearchQuery] = useState('');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+
+  // Hero Handlers
+  const handleHeroFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setEditingHero(prev => ({
+          ...prev,
+          customImageUrl: event.target?.result as string
+        }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveHero = (e: React.FormEvent) => {
+    e.preventDefault();
+    onUpdateHeroConfig(editingHero);
+    setSaveSuccessMsg('✓ ¡Portada (Hero) actualizada con éxito! Ya se ve reflejada en la tienda.');
+    setTimeout(() => setSaveSuccessMsg(''), 3500);
+  };
+
+  const handleResetHero = () => {
+    if (confirm('¿Restablecer la portada a la configuración inicial?')) {
+      setEditingHero({ ...DEFAULT_HERO_CONFIG });
+      onUpdateHeroConfig(DEFAULT_HERO_CONFIG);
+      setSaveSuccessMsg('✓ Portada restablecida a los valores iniciales.');
+      setTimeout(() => setSaveSuccessMsg(''), 3500);
+    }
+  };
+
 
   // File input refs for uploading images
   const fileInputRefFront = useRef<HTMLInputElement>(null);
@@ -250,56 +302,57 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-stone-950/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-stone-900 border-4 border-amber-400 rounded-2xl w-full max-w-5xl overflow-hidden shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] text-stone-100 flex flex-col max-h-[94vh]">
+    <div className="fixed inset-0 z-50 bg-stone-950/90 backdrop-blur-md flex items-center justify-center p-0 sm:p-4 overflow-y-auto">
+      <div className="bg-stone-900 border-0 sm:border-4 border-amber-400 rounded-none sm:rounded-2xl w-full max-w-5xl h-full sm:h-auto sm:max-h-[94vh] overflow-hidden shadow-2xl text-stone-100 flex flex-col">
         
         {/* TOP BAR */}
-        <div className="bg-stone-950 border-b-2 border-stone-800 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-400 text-stone-950 rounded-xl border-2 border-stone-900 flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(220,38,38,1)]">
-              {isAuthenticated ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5 text-red-700" />}
+        <div className="bg-stone-950 border-b-2 border-stone-800 p-3 sm:p-4 flex items-center justify-between gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-400 text-stone-950 rounded-xl border-2 border-stone-900 flex items-center justify-center flex-shrink-0 shadow-[2px_2px_0px_0px_rgba(220,38,38,1)]">
+              {isAuthenticated ? <Unlock className="w-4 h-4 sm:w-5 sm:h-5" /> : <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-red-700" />}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black text-amber-400 tracking-wider">PANEL DE CONTROL ADMINISTRADOR</h2>
-                <span className="bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-red-400">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h2 className="text-sm sm:text-base font-black text-amber-400 tracking-wider truncate">ADMINISTRADOR</h2>
+                <span className="bg-red-600 text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-full border border-red-400">
                   HATGT 502
                 </span>
               </div>
-              <p className="text-xs text-stone-400 font-medium">Edición de Fotos, Textos, Precios, Inversión y Catálogo</p>
+              <p className="text-[10px] sm:text-xs text-stone-400 font-medium truncate">Edición de Fotos, Textos, Portada y Catálogo</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             {isAuthenticated && (
               <button
                 onClick={handleLogout}
-                className="bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold px-3 py-1.5 rounded-lg border border-stone-700 transition-colors"
+                className="bg-stone-800 hover:bg-stone-700 text-stone-300 text-[11px] sm:text-xs font-bold px-2.5 py-1.5 rounded-lg border border-stone-700 transition-colors"
               >
-                Cerrar Sesión
+                Salir
               </button>
             )}
             <button
               onClick={onClose}
               id="close-admin-panel-btn"
-              className="bg-stone-800 hover:bg-red-600 text-stone-300 hover:text-white p-1.5 rounded-lg border border-stone-700 transition-colors"
+              className="bg-stone-800 hover:bg-red-600 text-stone-300 hover:text-white p-2 rounded-lg border border-stone-700 transition-colors active:scale-95"
+              title="Cerrar panel"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
 
         {/* LOGIN SCREEN IF NOT AUTHENTICATED */}
         {!isAuthenticated ? (
-          <div className="p-8 sm:p-12 flex flex-col items-center justify-center text-center max-w-md mx-auto my-auto space-y-6">
-            <div className="w-20 h-20 bg-amber-400/10 border-2 border-amber-400 rounded-full flex items-center justify-center text-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.2)]">
-              <Lock className="w-10 h-10" />
+          <div className="p-6 sm:p-12 flex flex-col items-center justify-center text-center max-w-md mx-auto my-auto space-y-6">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-amber-400/10 border-2 border-amber-400 rounded-full flex items-center justify-center text-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.2)]">
+              <Lock className="w-8 h-8 sm:w-10 sm:h-10" />
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-xl font-black text-white">Acceso Restringido Hatgt</h3>
+              <h3 className="text-lg sm:text-xl font-black text-white">Acceso Administrador Hatgt</h3>
               <p className="text-xs text-stone-400">
-                Ingresa la contraseña de administración para editar el catálogo, fotos, precios e inventario.
+                Ingresa la contraseña para editar la portada, catálogo, fotos, precios e inventario desde tu móvil o PC.
               </p>
             </div>
 
@@ -307,7 +360,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <div>
                 <input
                   type="password"
-                  placeholder="Contraseña de administrador..."
+                  placeholder="Contraseña..."
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
                   className="w-full bg-stone-950 border-2 border-stone-700 focus:border-amber-400 rounded-xl px-4 py-3 text-center text-amber-400 font-black tracking-widest text-lg focus:outline-none transition-colors"
@@ -333,42 +386,54 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           /* AUTHENTICATED ADMIN DASHBOARD */
           <div className="flex-1 flex flex-col overflow-hidden">
             
-            {/* TABS NAVIGATION */}
-            <div className="bg-stone-950 px-4 pt-3 border-b border-stone-800 flex gap-2 overflow-x-auto no-scrollbar">
+            {/* TABS NAVIGATION (TOUCH-FRIENDLY & SCROLLABLE ON MOBILE) */}
+            <div className="bg-stone-950 px-2 sm:px-4 pt-2 sm:pt-3 border-b border-stone-800 flex gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar flex-shrink-0">
               <button
                 onClick={() => { setActiveTab('products'); setEditingProduct(null); }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-black text-xs uppercase tracking-wider transition-colors border-t-2 border-x-2 ${
+                className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-t-xl font-black text-[11px] sm:text-xs uppercase tracking-wider whitespace-nowrap transition-colors border-t-2 border-x-2 ${
                   activeTab === 'products'
                     ? 'bg-stone-900 text-amber-400 border-amber-400'
                     : 'bg-stone-950 text-stone-400 border-transparent hover:text-stone-200'
                 }`}
               >
-                <Package className="w-4 h-4" />
-                Catálogo de Gorras ({products.length})
+                <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span>Gorras ({products.length})</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('hero'); setEditingProduct(null); }}
+                className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-t-xl font-black text-[11px] sm:text-xs uppercase tracking-wider whitespace-nowrap transition-colors border-t-2 border-x-2 ${
+                  activeTab === 'hero'
+                    ? 'bg-stone-900 text-amber-400 border-amber-400'
+                    : 'bg-stone-950 text-stone-400 border-transparent hover:text-stone-200'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 text-amber-400" />
+                <span>Portada (Hero)</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('dashboard'); setEditingProduct(null); }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-black text-xs uppercase tracking-wider transition-colors border-t-2 border-x-2 ${
+                className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-t-xl font-black text-[11px] sm:text-xs uppercase tracking-wider whitespace-nowrap transition-colors border-t-2 border-x-2 ${
                   activeTab === 'dashboard'
                     ? 'bg-stone-900 text-amber-400 border-amber-400'
                     : 'bg-stone-950 text-stone-400 border-transparent hover:text-stone-200'
                 }`}
               >
-                <TrendingUp className="w-4 h-4" />
-                Inversión & Finanzas
+                <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span>Finanzas</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('sales'); setEditingProduct(null); }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-black text-xs uppercase tracking-wider transition-colors border-t-2 border-x-2 ${
+                className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-t-xl font-black text-[11px] sm:text-xs uppercase tracking-wider whitespace-nowrap transition-colors border-t-2 border-x-2 ${
                   activeTab === 'sales'
                     ? 'bg-stone-900 text-amber-400 border-amber-400'
                     : 'bg-stone-950 text-stone-400 border-transparent hover:text-stone-200'
                 }`}
               >
-                <ShoppingBag className="w-4 h-4" />
-                Historial de Ventas ({salesRecords.length})
+                <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span>Ventas ({salesRecords.length})</span>
               </button>
             </div>
 
@@ -1168,8 +1233,89 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       </div>
                     </div>
 
-                    {/* Table */}
-                    <div className="overflow-x-auto">
+                    {/* VISTA MÓVIL EN TARJETAS (TOUCH-FRIENDLY) */}
+                    <div className="space-y-3 md:hidden">
+                      {filteredProducts.map(p => {
+                        const unitProfit = p.price - (p.costPrice || 0);
+                        return (
+                          <div 
+                            key={p.id}
+                            className="bg-stone-900 border-2 border-stone-800 rounded-xl p-3.5 space-y-3 shadow-md"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="w-14 h-14 rounded-lg bg-stone-950 border border-stone-700 overflow-hidden flex items-center justify-center flex-shrink-0">
+                                {p.imageUrl ? (
+                                  <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                ) : (
+                                  <span className="text-xs font-black text-amber-400">SVG</span>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="text-[10px] bg-stone-800 text-stone-400 font-mono px-1.5 py-0.5 rounded">{p.id}</span>
+                                  <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.stock <= 5 ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-stone-800 text-stone-200'}`}>
+                                    {p.stock} disp.
+                                  </span>
+                                </div>
+                                <h4 className="text-sm font-black text-white truncate mt-1">{p.name}</h4>
+                                <p className="text-[11px] text-stone-400 truncate">{p.category} • {p.style}</p>
+                              </div>
+                            </div>
+
+                            {/* Precios y Margen */}
+                            <div className="grid grid-cols-3 gap-2 bg-stone-950 p-2.5 rounded-lg border border-stone-800/80 text-center">
+                              <div>
+                                <span className="text-[9px] text-stone-500 font-bold block uppercase">Precio</span>
+                                <span className="text-xs font-black text-emerald-400">Q{p.price.toFixed(2)}</span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-stone-500 font-bold block uppercase">Costo</span>
+                                <span className="text-xs font-bold text-red-400">Q{(p.costPrice || 0).toFixed(2)}</span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-stone-500 font-bold block uppercase">Ganancia</span>
+                                <span className="text-xs font-black text-amber-400">+Q{unitProfit.toFixed(2)}</span>
+                              </div>
+                            </div>
+
+                            {/* Botones de Acción Táctiles */}
+                            <div className="flex gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEdit(p)}
+                                className="flex-1 bg-amber-400 hover:bg-amber-300 text-stone-950 font-black py-2.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span>Editar Gorra</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDuplicateProduct(p)}
+                                className="bg-stone-800 hover:bg-stone-700 text-stone-300 p-2.5 rounded-lg border border-stone-700 text-xs active:scale-95"
+                                title="Duplicar"
+                              >
+                                <Copy className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`¿Estás seguro de eliminar la gorra "${p.name}"?`)) {
+                                    onDeleteProduct(p.id);
+                                  }
+                                }}
+                                className="bg-red-950/70 hover:bg-red-600 text-red-400 hover:text-white p-2.5 rounded-lg border border-red-800 text-xs active:scale-95"
+                                title="Eliminar"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* VISTA ESCRITORIO EN TABLA */}
+                    <div className="hidden md:block overflow-x-auto">
                       <table className="w-full text-xs text-left">
                         <thead className="bg-stone-900 text-stone-400 font-black uppercase text-[10px] border-b border-stone-800">
                           <tr>
@@ -1254,6 +1400,371 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* TAB: HERO PORTADA & CONFIGURATION */}
+              {activeTab === 'hero' && (
+                <form onSubmit={handleSaveHero} className="space-y-6">
+                  
+                  {/* Hero Config Header */}
+                  <div className="bg-stone-950 p-4 sm:p-5 rounded-2xl border-2 border-stone-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-amber-400" />
+                        <h3 className="text-base sm:text-lg font-black text-amber-400 uppercase tracking-wide">
+                          Configuración y Portada (Hero) de HATGT
+                        </h3>
+                      </div>
+                      <p className="text-xs text-stone-400 mt-1">
+                        Personaliza en tiempo real la gorra destacada, foto de portada, textos, promociones y WhatsApp de contacto.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <button
+                        type="button"
+                        onClick={handleResetHero}
+                        className="bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold px-3 py-2.5 rounded-xl border border-stone-700 flex items-center gap-1.5 transition-colors flex-1 sm:flex-none justify-center"
+                        title="Restablecer textos por defecto"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        Restablecer
+                      </button>
+                      <button
+                        type="submit"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-5 py-2.5 rounded-xl text-xs flex items-center gap-1.5 border border-emerald-400 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:scale-95 transition-all uppercase tracking-wider flex-1 sm:flex-none justify-center"
+                      >
+                        <Save className="w-4 h-4" />
+                        Guardar Portada
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* LEFT COLUMN: CONTROLS & INPUTS */}
+                    <div className="lg:col-span-7 space-y-6">
+
+                      {/* 1. SELECTOR DE GORRA DESTACADA */}
+                      <div className="bg-stone-950 p-4 sm:p-5 rounded-2xl border-2 border-stone-800 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                            <Package className="w-4 h-4" />
+                            1. Gorra Destacada en la Portada:
+                          </label>
+                          <span className="text-[10px] text-stone-400 font-mono bg-stone-900 px-2 py-0.5 rounded">
+                            Toca una para seleccionarla
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-64 overflow-y-auto pr-1">
+                          {products.map(prod => {
+                            const isSelected = editingHero.featuredProductId === prod.id;
+                            return (
+                              <div
+                                key={prod.id}
+                                onClick={() => setEditingHero(prev => ({ ...prev, featuredProductId: prod.id }))}
+                                className={`p-2.5 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${
+                                  isSelected
+                                    ? 'bg-amber-400/10 border-amber-400 text-white shadow-md'
+                                    : 'bg-stone-900 border-stone-800 text-stone-300 hover:border-stone-700'
+                                }`}
+                              >
+                                <div className="w-12 h-12 rounded-lg bg-stone-950 border border-stone-700 overflow-hidden flex items-center justify-center flex-shrink-0">
+                                  {prod.imageUrl ? (
+                                    <img src={prod.imageUrl} alt={prod.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                  ) : (
+                                    <span className="text-[10px] font-black text-amber-400">SVG</span>
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <h5 className="text-xs font-black truncate">{prod.name}</h5>
+                                  <p className="text-[10px] text-stone-400 truncate">{prod.style}</p>
+                                  <span className="text-xs font-bold text-amber-400">Q{prod.price}.00</span>
+                                </div>
+                                {isSelected && (
+                                  <div className="w-5 h-5 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center flex-shrink-0">
+                                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* 2. IMAGEN PERSONALIZADA DE PORTADA (OPCIONAL) */}
+                      <div className="bg-stone-950 p-4 sm:p-5 rounded-2xl border-2 border-stone-800 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                            <ImagePlus className="w-4 h-4" />
+                            2. Imagen de Portada (Foto o Banner):
+                          </label>
+                          {editingHero.customImageUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingHero(prev => ({ ...prev, customImageUrl: undefined }))}
+                              className="text-[11px] text-red-400 hover:text-red-300 font-bold underline"
+                            >
+                              Quitar foto (Usar modelo 3D)
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          {/* Upload from mobile / PC */}
+                          <div className="flex flex-col sm:flex-row gap-3 items-center">
+                            <input
+                              ref={fileInputRefHero}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleHeroFileUpload}
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => fileInputRefHero.current?.click()}
+                              className="w-full sm:w-auto bg-stone-900 hover:bg-stone-800 text-amber-300 border-2 border-amber-400/50 hover:border-amber-400 font-bold px-4 py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all active:scale-95"
+                            >
+                              <Upload className="w-4 h-4" />
+                              Subir Foto desde Celular o PC
+                            </button>
+                            <span className="text-[11px] text-stone-500">o ingresa el enlace directo abajo:</span>
+                          </div>
+
+                          {/* URL input */}
+                          <input
+                            type="url"
+                            placeholder="https://ejemplo.com/mi-foto-portada.jpg"
+                            value={editingHero.customImageUrl || ''}
+                            onChange={(e) => setEditingHero(prev => ({ ...prev, customImageUrl: e.target.value || undefined }))}
+                            className="w-full bg-stone-900 border border-stone-700 rounded-xl p-2.5 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                      </div>
+
+                      {/* 3. TEXTOS Y AVISOS DE LA PORTADA */}
+                      <div className="bg-stone-950 p-4 sm:p-5 rounded-2xl border-2 border-stone-800 space-y-4">
+                        <label className="text-xs font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                          <FileText className="w-4 h-4" />
+                          3. Textos, Titulares y WhatsApp Oficial:
+                        </label>
+
+                        <div className="space-y-3">
+                          {/* Top announcement bar */}
+                          <div>
+                            <label className="block text-[11px] font-bold text-stone-400 mb-1">
+                              Barra Superior de Aviso (Toda la tienda):
+                            </label>
+                            <input
+                              type="text"
+                              value={editingHero.announcementBarText}
+                              onChange={(e) => setEditingHero(prev => ({ ...prev, announcementBarText: e.target.value }))}
+                              className="w-full bg-stone-900 border border-stone-700 rounded-xl p-2.5 text-xs text-white font-medium focus:border-amber-400 focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-bold text-stone-400 mb-1">
+                                Etiqueta Superior 1 (Badge Rojo):
+                              </label>
+                              <input
+                                type="text"
+                                value={editingHero.badgeText}
+                                onChange={(e) => setEditingHero(prev => ({ ...prev, badgeText: e.target.value }))}
+                                className="w-full bg-stone-900 border border-stone-700 rounded-xl p-2.5 text-xs text-white font-medium focus:border-amber-400 focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-bold text-stone-400 mb-1">
+                                Etiqueta Superior 2 (Badge Verde):
+                              </label>
+                              <input
+                                type="text"
+                                value={editingHero.badgeSubtext}
+                                onChange={(e) => setEditingHero(prev => ({ ...prev, badgeSubtext: e.target.value }))}
+                                className="w-full bg-stone-900 border border-stone-700 rounded-xl p-2.5 text-xs text-white font-medium focus:border-amber-400 focus:outline-none"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-stone-400 mb-1">
+                              Título Principal (Línea 1 en blanco):
+                            </label>
+                            <input
+                              type="text"
+                              value={editingHero.titleLine1}
+                              onChange={(e) => setEditingHero(prev => ({ ...prev, titleLine1: e.target.value }))}
+                              className="w-full bg-stone-900 border border-stone-700 rounded-xl p-2.5 text-xs text-white font-bold focus:border-amber-400 focus:outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-stone-400 mb-1">
+                              Título Resaltado (En degradado llamativo):
+                            </label>
+                            <input
+                              type="text"
+                              value={editingHero.titleHighlight}
+                              onChange={(e) => setEditingHero(prev => ({ ...prev, titleHighlight: e.target.value }))}
+                              className="w-full bg-stone-900 border border-stone-700 rounded-xl p-2.5 text-xs text-amber-300 font-bold focus:border-amber-400 focus:outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-stone-400 mb-1">
+                              Descripción / Párrafo Persuasivo:
+                            </label>
+                            <textarea
+                              rows={3}
+                              value={editingHero.description}
+                              onChange={(e) => setEditingHero(prev => ({ ...prev, description: e.target.value }))}
+                              className="w-full bg-stone-900 border border-stone-700 rounded-xl p-2.5 text-xs text-stone-300 focus:border-amber-400 focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-bold text-stone-400 mb-1">
+                                Texto del Botón (Llamado a la acción):
+                              </label>
+                              <input
+                                type="text"
+                                value={editingHero.ctaButtonText}
+                                onChange={(e) => setEditingHero(prev => ({ ...prev, ctaButtonText: e.target.value }))}
+                                className="w-full bg-stone-900 border border-stone-700 rounded-xl p-2.5 text-xs text-white font-medium focus:border-amber-400 focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-bold text-stone-400 mb-1">
+                                WhatsApp Oficial para Pedidos:
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="+502 5555-0199"
+                                value={editingHero.whatsappNumber}
+                                onChange={(e) => setEditingHero(prev => ({ ...prev, whatsappNumber: e.target.value }))}
+                                className="w-full bg-stone-900 border border-stone-700 rounded-xl p-2.5 text-xs text-emerald-400 font-bold focus:border-amber-400 focus:outline-none"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-stone-400 mb-1">
+                              Etiqueta Flotante sobre la Foto de la Gorra:
+                            </label>
+                            <input
+                              type="text"
+                              value={editingHero.bannerBadgeText}
+                              onChange={(e) => setEditingHero(prev => ({ ...prev, bannerBadgeText: e.target.value }))}
+                              className="w-full bg-stone-900 border border-stone-700 rounded-xl p-2.5 text-xs text-white font-medium focus:border-amber-400 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* BOTÓN GUARDAR FINAL */}
+                      <div className="pt-2">
+                        <button
+                          type="submit"
+                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 border-2 border-emerald-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all uppercase tracking-wider"
+                        >
+                          <Save className="w-5 h-5" />
+                          Guardar y Publicar Portada
+                        </button>
+                      </div>
+
+                    </div>
+
+                    {/* RIGHT COLUMN: LIVE PREVIEW OF HERO */}
+                    <div className="lg:col-span-5 space-y-4">
+                      <div className="sticky top-4 bg-stone-950 p-4 sm:p-5 rounded-2xl border-2 border-amber-400/80 space-y-4 shadow-xl">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                            <Eye className="w-4 h-4" />
+                            Vista Previa en Vivo:
+                          </span>
+                          <span className="text-[10px] bg-amber-400 text-stone-950 px-2 py-0.5 rounded font-black">
+                            EN VIVO
+                          </span>
+                        </div>
+
+                        {/* SIMULACIÓN DE LA PORTADA EN VIVO */}
+                        {(() => {
+                          const previewProd = products.find(p => p.id === editingHero.featuredProductId) || products[0];
+                          return (
+                            <div className="bg-stone-900 border-2 border-stone-700 rounded-xl p-4 space-y-3">
+                              {/* Badges */}
+                              <div className="flex flex-wrap gap-1.5">
+                                <span className="bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                                  {editingHero.badgeText}
+                                </span>
+                                <span className="bg-emerald-700 text-amber-200 text-[9px] font-bold px-2 py-0.5 rounded-full">
+                                  {editingHero.badgeSubtext}
+                                </span>
+                              </div>
+
+                              {/* Titles */}
+                              <div className="space-y-0.5">
+                                <h4 className="text-sm font-black text-white leading-tight">
+                                  {editingHero.titleLine1}
+                                </h4>
+                                <h4 className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400 leading-tight">
+                                  {editingHero.titleHighlight}
+                                </h4>
+                              </div>
+
+                              <p className="text-[11px] text-stone-300 line-clamp-3 leading-relaxed">
+                                {editingHero.description}
+                              </p>
+
+                              {/* Hero Showcase Card Preview */}
+                              <div className="bg-stone-950 border-2 border-amber-400 rounded-xl p-3 relative overflow-hidden text-center mt-3">
+                                <div className="absolute top-2 right-2 bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full rotate-6 border border-white">
+                                  {editingHero.bannerBadgeText}
+                                </div>
+
+                                <div className="mb-2">
+                                  {editingHero.customImageUrl ? (
+                                    <div className="w-full h-36 rounded-lg overflow-hidden bg-stone-900 border border-stone-700 flex items-center justify-center">
+                                      <img 
+                                        src={editingHero.customImageUrl} 
+                                        alt="Gorra Portada" 
+                                        className="w-full h-full object-cover" 
+                                        referrerPolicy="no-referrer"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <CapVisualInteractive
+                                      type={previewProd?.svgType}
+                                      paletteKey={previewProd?.colors[0]?.paletteKey}
+                                      viewAngle="front"
+                                      imageUrl={previewProd?.imageUrl}
+                                      size="small"
+                                    />
+                                  )}
+                                </div>
+
+                                <div className="text-left space-y-1">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-xs font-black text-white truncate max-w-[140px]">{previewProd?.name}</span>
+                                    <span className="text-sm font-black text-amber-400">Q{previewProd?.price}.00</span>
+                                  </div>
+                                  <p className="text-[10px] text-stone-400 truncate">{previewProd?.style}</p>
+                                </div>
+                              </div>
+
+                            </div>
+                          );
+                        })()}
+
+                      </div>
+                    </div>
+
+                  </div>
+
+                </form>
               )}
 
               {/* TAB 2: FINANCIAL OVERVIEW / INVERSION VS VENTAS */}

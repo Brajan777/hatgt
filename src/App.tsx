@@ -18,8 +18,8 @@ import {
   Lock
 } from 'lucide-react';
 
-import { Product, CartItem, ProductReview, SaleRecord } from './types';
-import { PRODUCTS as INITIAL_PRODUCTS, REVIEWS_DATA, INITIAL_SALES_RECORDS } from './data/products';
+import { Product, CartItem, ProductReview, SaleRecord, HeroConfig } from './types';
+import { PRODUCTS as INITIAL_PRODUCTS, REVIEWS_DATA, INITIAL_SALES_RECORDS, DEFAULT_HERO_CONFIG } from './data/products';
 import { CapVisualInteractive } from './components/CapVisualInteractive';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { SizeGuideModal } from './components/SizeGuideModal';
@@ -51,6 +51,20 @@ export default function App() {
       return INITIAL_SALES_RECORDS;
     }
   });
+
+  // Hero Portada & Settings State with LocalStorage Persistence
+  const [heroConfig, setHeroConfig] = useState<HeroConfig>(() => {
+    try {
+      const saved = localStorage.getItem('hatgt_hero_config');
+      return saved ? JSON.parse(saved) : DEFAULT_HERO_CONFIG;
+    } catch {
+      return DEFAULT_HERO_CONFIG;
+    }
+  });
+
+  const featuredHeroProduct = useMemo(() => {
+    return products.find(p => p.id === heroConfig.featuredProductId) || products[0];
+  }, [products, heroConfig.featuredProductId]);
 
   const [activeCategory, setActiveCategory] = useState<string>('Todas');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -115,6 +129,15 @@ export default function App() {
       console.error(e);
     }
   }, [favorites]);
+
+  // Persist Hero Configuration to Local Storage
+  useEffect(() => {
+    try {
+      localStorage.setItem('hatgt_hero_config', JSON.stringify(heroConfig));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [heroConfig]);
 
   const categories = [
     'Todas',
@@ -339,7 +362,7 @@ export default function App() {
             <span className="bg-red-950/70 px-2 py-0.5 rounded text-[10px] tracking-wider uppercase border border-amber-300/40">
               Guate 100%
             </span>
-            <span>🇬🇹 ¡Pagas en efectivo al recibir en los 22 departamentos! Envíos en 24 a 48 hrs</span>
+            <span>{heroConfig.announcementBarText}</span>
           </div>
           <div className="flex items-center gap-4 text-[11px] hidden md:flex">
             <button 
@@ -388,58 +411,69 @@ export default function App() {
             <div className="relative">
               <input 
                 type="text"
-                id="main-search-input"
-                placeholder="Buscar gorra snapback, dad cap, trucker, pana, quetzal..."
+                id="search-input-desktop"
+                placeholder="Buscar gorra por modelo, color o corte (ej. pana, snapback)..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-stone-100 border-2 border-stone-800 rounded-lg py-2 pl-9 pr-8 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                className="w-full bg-white border-2 border-stone-800 rounded-xl pl-9 pr-8 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               />
-              <Search className="w-4 h-4 text-stone-600 absolute left-3 top-2.5" />
+              <Search className="w-4 h-4 text-stone-500 absolute left-3 top-2.5" />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-2.5 text-stone-400 hover:text-stone-700">
-                  <X className="w-4 h-4" />
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-2.5 text-stone-400 hover:text-stone-700"
+                >
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
           </div>
 
-          {/* Botones de Utilidades y Navegación Rápida */}
+          {/* Acciones del Header */}
           <div className="flex items-center gap-2 sm:gap-3">
-            
             {/* Guía de Tallas */}
             <button
               id="header-size-guide-btn"
               onClick={() => setIsSizeGuideOpen(true)}
-              className="flex items-center gap-1 bg-white hover:bg-stone-100 text-stone-800 border-2 border-stone-900 px-3 py-2 rounded-xl text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
-              title="Guía de Tallas y Medidas"
+              className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-stone-700 hover:text-stone-900 bg-white border-2 border-stone-800 px-3 py-2 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all"
             >
               <Ruler className="w-3.5 h-3.5 text-red-600" />
-              <span className="hidden sm:inline">Guía de Tallas</span>
+              <span>Guía Tallas</span>
             </button>
 
-            {/* Favoritas */}
+            {/* Rastrear Pedido */}
+            <button
+              id="header-tracker-btn"
+              onClick={() => setIsTrackerOpen(true)}
+              className="hidden md:flex items-center gap-1.5 text-xs font-bold text-stone-700 hover:text-stone-900 bg-white border-2 border-stone-800 px-3 py-2 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+            >
+              <Truck className="w-3.5 h-3.5 text-amber-500" />
+              <span>Rastreo</span>
+            </button>
+
+            {/* Wishlist Button */}
             <button
               id="header-wishlist-btn"
               onClick={() => setIsWishlistOpen(true)}
-              className="relative bg-white hover:bg-red-50 text-stone-900 border-2 border-stone-900 p-2 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+              className="relative p-2.5 bg-white text-stone-800 border-2 border-stone-800 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-stone-50 transition-all active:scale-95"
               title="Mis Favoritas"
             >
-              <Heart className={`w-5 h-5 ${favorites.length > 0 ? 'text-red-600 fill-red-600' : 'text-stone-700'}`} />
+              <Heart className="w-5 h-5 text-red-600" />
               {favorites.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-stone-900">
+                <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
                   {favorites.length}
                 </span>
               )}
             </button>
 
-            {/* Bolsa Carrito */}
+            {/* Carrito Button */}
             <button 
-              id="header-cart-btn"
+              id="header-cart-drawer-btn"
               onClick={() => setIsCartOpen(true)}
-              className="relative bg-amber-400 hover:bg-amber-300 text-stone-900 border-2 border-stone-900 font-bold px-3.5 sm:px-4 py-2 rounded-xl flex items-center gap-2 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+              className="relative bg-amber-400 hover:bg-amber-300 text-stone-950 font-black px-3.5 sm:px-4 py-2 rounded-xl border-2 border-stone-900 shadow-[3px_3px_0px_0px_rgba(220,38,38,1)] flex items-center gap-2 transition-all active:translate-x-0.5 active:translate-y-0.5"
             >
-              <ShoppingBag className="w-5 h-5 text-red-700" />
-              <span className="hidden xs:inline text-xs sm:text-sm font-black tracking-wide">MI BOLSA</span>
+              <ShoppingBag className="w-4 h-4 text-stone-900" />
+              <span className="text-xs hidden sm:inline uppercase">Bolsa</span>
               <span className="bg-red-600 text-white text-xs font-black px-2 py-0.5 rounded-full border border-stone-900">
                 {totalItemsCount}
               </span>
@@ -448,15 +482,15 @@ export default function App() {
         </div>
 
         {/* Buscador móvil */}
-        <div className="px-4 pb-3 lg:hidden flex gap-2">
-          <div className="relative flex-1">
+        <div className="px-4 pb-3 lg:hidden">
+          <div className="relative">
             <input 
               type="text"
-              id="mobile-search-input"
-              placeholder="Buscar gorras clásicas..."
+              id="search-input-mobile"
+              placeholder="Buscar gorra (ej. pana, snapback, quetzal)..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border-2 border-stone-800 rounded-lg py-1.5 pl-8 pr-4 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full bg-white border-2 border-stone-800 rounded-xl pl-8 pr-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             />
             <Search className="w-3.5 h-3.5 text-stone-500 absolute left-2.5 top-2" />
           </div>
@@ -473,22 +507,22 @@ export default function App() {
             <div className="lg:col-span-7 space-y-5">
               <div className="inline-flex flex-wrap items-center gap-2">
                 <span className="bg-red-600 text-white font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider border-2 border-amber-300 shadow-[2px_2px_0px_0px_rgba(245,158,11,1)]">
-                  ⚡ COLECCIÓN RETRO GUATEMALA 2026
+                  {heroConfig.badgeText}
                 </span>
                 <span className="bg-emerald-700 text-amber-200 font-bold text-xs px-3 py-1 rounded-full border border-emerald-400">
-                  🇬🇹 Pago Contra Entrega en Todo el País
+                  {heroConfig.badgeSubtext}
                 </span>
               </div>
 
               <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.08] text-white">
-                GORRAS RETRO EN GUATEMALA <br />
+                {heroConfig.titleLine1} <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400">
-                  ESTILO VINTAGE QUE RESALTA.
+                  {heroConfig.titleHighlight}
                 </span>
               </h1>
 
               <p className="text-stone-300 text-sm sm:text-base md:text-lg max-w-xl font-medium leading-relaxed">
-                ¡Qué onda! En <strong>HATGT</strong> creamos y seleccionamos las mejores <strong>Snapbacks 90s, Dad Caps de pana fina y Truckers clásicas</strong> con coronas estructuradas que nunca pierden su forma. Explora cada detalle en 360° y <strong>recibe en tu puerta pagando en efectivo</strong> en los 22 departamentos.
+                {heroConfig.description}
               </p>
 
               <div className="flex flex-wrap gap-4 pt-2 items-center">
@@ -498,7 +532,7 @@ export default function App() {
                   className="bg-amber-400 hover:bg-amber-300 text-stone-900 font-black text-base px-6 py-3.5 rounded-xl border-3 border-stone-900 shadow-[4px_4px_0px_0px_rgba(220,38,38,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all flex items-center gap-2"
                 >
                   <Flame className="w-5 h-5 text-red-600 fill-red-600" />
-                  VER CATÁLOGO & PRECIOS (GTQ)
+                  {heroConfig.ctaButtonText || 'VER CATÁLOGO & PRECIOS (GTQ)'}
                 </a>
                 <span className="text-xs font-bold text-stone-400 flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" /> Garantía de cambio y empaque en caja rígida
@@ -510,21 +544,32 @@ export default function App() {
             <div className="lg:col-span-5 relative">
               <div 
                 id="hero-showcase-card"
-                onClick={() => setSelectedProduct(products[0])}
+                onClick={() => setSelectedProduct(featuredHeroProduct)}
                 className="cursor-pointer bg-gradient-to-b from-stone-800 to-stone-900 border-4 border-amber-400 rounded-2xl p-6 shadow-[8px_8px_0px_0px_rgba(220,38,38,1)] hover:scale-[1.02] transition-all text-center relative overflow-hidden group"
               >
                 <div className="absolute top-4 right-4 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider rotate-12 border border-white z-10 shadow-md">
-                  ¡Toca para Ver Fotos!
+                  {heroConfig.bannerBadgeText || '¡Toca para Ver Fotos!'}
                 </div>
 
                 <div className="mb-4">
-                  <CapVisualInteractive 
-                    type={products[0]?.svgType} 
-                    paletteKey={products[0]?.colors[0]?.paletteKey} 
-                    viewAngle="front" 
-                    imageUrl={products[0]?.imageUrl}
-                    size="normal" 
-                  />
+                  {heroConfig.customImageUrl ? (
+                    <div className="w-full h-64 rounded-xl overflow-hidden bg-stone-950 border-2 border-stone-700 flex items-center justify-center relative">
+                      <img 
+                        src={heroConfig.customImageUrl} 
+                        alt={featuredHeroProduct?.name || 'Gorra Hero'} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  ) : (
+                    <CapVisualInteractive 
+                      type={featuredHeroProduct?.svgType} 
+                      paletteKey={featuredHeroProduct?.colors[0]?.paletteKey} 
+                      viewAngle="front" 
+                      imageUrl={featuredHeroProduct?.imageUrl}
+                      size="normal" 
+                    />
+                  )}
                 </div>
 
                 <div className="space-y-2 text-left">
@@ -532,16 +577,16 @@ export default function App() {
                     <span className="text-xs font-bold text-emerald-400 tracking-wider uppercase flex items-center gap-1">
                       <Eye className="w-3.5 h-3.5" /> Rotación 360° disponible
                     </span>
-                    <span className="text-xs font-black text-stone-400 line-through">Q{products[0]?.originalPrice || 220}.00</span>
+                    <span className="text-xs font-black text-stone-400 line-through">Q{featuredHeroProduct?.originalPrice || 220}.00</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-black text-white group-hover:text-amber-400 transition-colors">
-                      {products[0]?.name}
+                      {featuredHeroProduct?.name}
                     </h3>
-                    <span className="text-2xl font-black text-amber-400">Q{products[0]?.price || 175}.00</span>
+                    <span className="text-2xl font-black text-amber-400">Q{featuredHeroProduct?.price || 175}.00</span>
                   </div>
                   <p className="text-xs text-stone-300">
-                    {products[0]?.description || 'Gorra estructurada retro con acabados premium y ajuste snapback.'}
+                    {featuredHeroProduct?.description || 'Gorra estructurada retro con acabados premium y ajuste snapback.'}
                   </p>
                   <button 
                     type="button"
@@ -944,7 +989,7 @@ export default function App() {
       {/* --- BOTÓN FLOTANTE DE WHATSAPP (ESQUINA INFERIOR DERECHA) --- */}
       <div className="fixed bottom-5 right-5 z-40">
         <a
-          href="https://wa.me/50255550199?text=Hola%20Hatgt%20Guatemala,%20me%20gustar%C3%ADa%20consultar%20sobre%20las%20gorras%20retro"
+          href={`https://wa.me/${heroConfig.whatsappNumber.replace(/[^0-9]/g, '') || '50255550199'}?text=Hola%20HATGT%20Guatemala,%20me%20gustar%C3%ADa%20consultar%20sobre%20las%20gorras%20retro`}
           target="_blank"
           rel="noopener noreferrer"
           id="whatsapp-floating-btn"
@@ -952,7 +997,7 @@ export default function App() {
           title="Chatear por WhatsApp"
         >
           <MessageCircle className="w-5 h-5 text-white fill-white/20" />
-          <span className="hidden sm:inline font-black tracking-wide">WhatsApp Hatgt</span>
+          <span className="hidden sm:inline font-black tracking-wide">WhatsApp HATGT</span>
         </a>
       </div>
 
@@ -1014,6 +1059,8 @@ export default function App() {
         onClose={() => setIsAdminOpen(false)}
         products={products}
         salesRecords={salesRecords}
+        heroConfig={heroConfig}
+        onUpdateHeroConfig={setHeroConfig}
         onUpdateProduct={handleUpdateProduct}
         onAddProduct={handleAddProduct}
         onDeleteProduct={handleDeleteProduct}

@@ -98,3 +98,18 @@ export interface OrderFormData {
   referenciaTransferencia?: string;
 }
 
+export interface HeroConfig {
+  badgeText: string;
+  badgeSubtext: string;
+  titleLine1: string;
+  titleHighlight: string;
+  description: string;
+  featuredProductId: string;
+  customImageUrl?: string;
+  bannerBadgeText: string;
+  ctaButtonText: string;
+  announcementBarText: string;
+  whatsappNumber: string;
+}
+
+
