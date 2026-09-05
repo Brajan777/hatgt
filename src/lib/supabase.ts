@@ -1,37 +1,31 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Product, HeroConfig, SaleRecord } from '../types';
 
-const DEFAULT_SUPABASE_URL = 'https://ximjvptxjqrcdmupvskn.supabase.co';
-const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpbWp2cHR4anFyY2RtdXB2c2tuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMTU4MTIsImV4cCI6MjEwMzg5MTgxMn0.kS2eWbljqz533lT9N-IpiRhEyOHxKyAadSrqzGKDTP8';
+const SUPABASE_URL = 'https://ximjvptxjqrcdmupvskn.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpbWp2cHR4anFyY2RtdXB2c2tuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMTU4MTIsImV4cCI6MjEwMzg5MTgxMn0.kS2eWbljqz533lT9N-IpiRhEyOHxKyAadSrqzGKDTP8';
 
-// Obtiene credenciales de Vite ENV, localStorage o valores configurados
+// Credenciales directas a la base de datos en la nube (Supabase)
 export const getSupabaseCredentials = () => {
   const metaEnv = (import.meta as any).env || {};
   const envUrl = (metaEnv.VITE_SUPABASE_URL || '').trim();
   const envKey = (metaEnv.VITE_SUPABASE_ANON_KEY || '').trim();
-  const localUrl = (localStorage.getItem('hatgt_supabase_url') || '').trim();
-  const localKey = (localStorage.getItem('hatgt_supabase_key') || '').trim();
 
   return {
-    url: envUrl || localUrl || DEFAULT_SUPABASE_URL,
-    key: envKey || localKey || DEFAULT_SUPABASE_KEY,
-    source: envUrl ? 'env' : localUrl ? 'local' : 'configured'
+    url: envUrl || SUPABASE_URL,
+    key: envKey || SUPABASE_KEY,
+    source: 'cloud'
   };
 };
 
 let supabaseInstance: SupabaseClient | null = null;
-let lastUsedUrl = '';
-let lastUsedKey = '';
 
 export const getSupabaseClient = (): SupabaseClient | null => {
   const { url, key } = getSupabaseCredentials();
   if (!url || !key) return null;
 
-  if (!supabaseInstance || lastUsedUrl !== url || lastUsedKey !== key) {
+  if (!supabaseInstance) {
     try {
       supabaseInstance = createClient(url, key);
-      lastUsedUrl = url;
-      lastUsedKey = key;
     } catch (err) {
       console.error('Error al inicializar Supabase:', err);
       return null;
@@ -40,17 +34,6 @@ export const getSupabaseClient = (): SupabaseClient | null => {
   return supabaseInstance;
 };
 
-export const saveSupabaseCredentials = (url: string, key: string) => {
-  localStorage.setItem('hatgt_supabase_url', url.trim());
-  localStorage.setItem('hatgt_supabase_key', key.trim());
-  supabaseInstance = null;
-};
-
-export const clearSupabaseCredentials = () => {
-  localStorage.removeItem('hatgt_supabase_url');
-  localStorage.removeItem('hatgt_supabase_key');
-  supabaseInstance = null;
-};
 
 // Conversión de BD (snake_case) a App (camelCase)
 const mapRowToProduct = (r: any): Product => ({
@@ -110,7 +93,6 @@ const mapProductToRow = (p: Product) => ({
   side_image_url: p.sideImageUrl || null,
   back_image_url: p.backImageUrl || null,
   undervisor_image_url: p.undervisorImageUrl || null,
-  image_fit: p.imageFit || 'contain',
   is_best_seller: p.isBestSeller || false,
   is_new_arrival: p.isNewArrival || false,
   updated_at: new Date().toISOString()
@@ -138,9 +120,9 @@ export const fetchProductsFromCloud = async (): Promise<Product[] | null> => {
   }
 };
 
-export const syncProductToCloud = async (product: Product): Promise<boolean> => {
+export const syncProductToCloud = async (product: Product): Promise<{ success: boolean; error?: string }> => {
   const client = getSupabaseClient();
-  if (!client) return false;
+  if (!client) return { success: false, error: 'Sin conexión a Supabase' };
 
   try {
     const row = mapProductToRow(product);
@@ -150,12 +132,12 @@ export const syncProductToCloud = async (product: Product): Promise<boolean> => 
 
     if (error) {
       console.error('Error guardando producto en Supabase:', error.message);
-      return false;
+      return { success: false, error: error.message };
     }
-    return true;
-  } catch (err) {
+    return { success: true };
+  } catch (err: any) {
     console.error('Error en syncProductToCloud:', err);
-    return false;
+    return { success: false, error: err?.message || 'Error de red' };
   }
 };
 
@@ -196,9 +178,9 @@ export const fetchHeroConfigFromCloud = async (): Promise<HeroConfig | null> => 
   }
 };
 
-export const syncHeroConfigToCloud = async (config: HeroConfig): Promise<boolean> => {
+export const syncHeroConfigToCloud = async (config: HeroConfig): Promise<{ success: boolean; error?: string }> => {
   const client = getSupabaseClient();
-  if (!client) return false;
+  if (!client) return { success: false, error: 'Sin conexión a Supabase' };
 
   try {
     const { error } = await client
@@ -209,10 +191,14 @@ export const syncHeroConfigToCloud = async (config: HeroConfig): Promise<boolean
         updated_at: new Date().toISOString()
       }, { onConflict: 'id' });
 
-    return !error;
-  } catch (err) {
+    if (error) {
+      console.error('Error guardando portada en Supabase:', error.message);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
     console.error('Error guardando portada en Supabase:', err);
-    return false;
+    return { success: false, error: err?.message || 'Error de red' };
   }
 };
 

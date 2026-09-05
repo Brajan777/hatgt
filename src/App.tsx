@@ -43,35 +43,10 @@ import {
 } from './lib/supabase';
 
 export default function App() {
-  // Products State with LocalStorage Persistence
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const saved = localStorage.getItem('hatgt_products_catalog');
-      return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-    } catch {
-      return INITIAL_PRODUCTS;
-    }
-  });
-
-  // Sales Records for Admin Dashboard
-  const [salesRecords, setSalesRecords] = useState<SaleRecord[]>(() => {
-    try {
-      const saved = localStorage.getItem('hatgt_sales_history');
-      return saved ? JSON.parse(saved) : INITIAL_SALES_RECORDS;
-    } catch {
-      return INITIAL_SALES_RECORDS;
-    }
-  });
-
-  // Hero Portada & Settings State with LocalStorage Persistence
-  const [heroConfig, setHeroConfig] = useState<HeroConfig>(() => {
-    try {
-      const saved = localStorage.getItem('hatgt_hero_config');
-      return saved ? JSON.parse(saved) : DEFAULT_HERO_CONFIG;
-    } catch {
-      return DEFAULT_HERO_CONFIG;
-    }
-  });
+  // Estado de Productos, Ventas y Portada (100% Sincronizados con Supabase Cloud)
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [salesRecords, setSalesRecords] = useState<SaleRecord[]>(INITIAL_SALES_RECORDS);
+  const [heroConfig, setHeroConfig] = useState<HeroConfig>(DEFAULT_HERO_CONFIG);
 
   const featuredHeroProduct = useMemo(() => {
     return products.find(p => p.id === heroConfig.featuredProductId) || products[0];
@@ -102,53 +77,9 @@ export default function App() {
     }
   ]);
 
-  const [favorites, setFavorites] = useState<Product[]>(() => {
-    try {
-      const saved = localStorage.getItem('hatgt_favorites');
-      return saved ? JSON.parse(saved) : [INITIAL_PRODUCTS[0], INITIAL_PRODUCTS[2]];
-    } catch {
-      return [INITIAL_PRODUCTS[0], INITIAL_PRODUCTS[2]];
-    }
-  });
-
+  const [favorites, setFavorites] = useState<Product[]>([INITIAL_PRODUCTS[0], INITIAL_PRODUCTS[2]]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [reviews, setReviews] = useState<ProductReview[]>(REVIEWS_DATA);
-
-  // Persist Products to Local Storage
-  useEffect(() => {
-    try {
-      localStorage.setItem('hatgt_products_catalog', JSON.stringify(products));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [products]);
-
-  // Persist Sales Records to Local Storage
-  useEffect(() => {
-    try {
-      localStorage.setItem('hatgt_sales_history', JSON.stringify(salesRecords));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [salesRecords]);
-
-  // Sync favorites to local storage
-  useEffect(() => {
-    try {
-      localStorage.setItem('hatgt_favorites', JSON.stringify(favorites));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [favorites]);
-
-  // Persist Hero Configuration to Local Storage
-  useEffect(() => {
-    try {
-      localStorage.setItem('hatgt_hero_config', JSON.stringify(heroConfig));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [heroConfig]);
 
   // Función para refrescar datos desde Supabase (manual o en tiempo real)
   const refreshCloudData = useCallback(async (silent = true) => {
@@ -370,38 +301,53 @@ export default function App() {
     showToast('¡Pedido completado con éxito! Despachando a tu departamento.');
   };
 
-  // Admin Management Functions
-  const handleUpdateProduct = (updated: Product) => {
+  // Admin Management Functions (Direct Cloud Sync)
+  const handleUpdateProduct = async (updated: Product) => {
     setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
-    syncProductToCloud(updated);
-    showToast(`✓ Gorra "${updated.name}" guardada y sincronizada en la nube.`);
+    const res = await syncProductToCloud(updated);
+    if (!res.success) {
+      alert(`⚠️ Error guardando en Supabase: ${res.error}`);
+    } else {
+      showToast(`✓ Gorra "${updated.name}" guardada y sincronizada en Supabase.`);
+    }
   };
 
-  const handleAddProduct = (newProduct: Product) => {
+  const handleAddProduct = async (newProduct: Product) => {
     setProducts(prev => [newProduct, ...prev]);
-    syncProductToCloud(newProduct);
-    showToast(`✓ Nueva gorra "${newProduct.name}" publicada en la nube.`);
+    const res = await syncProductToCloud(newProduct);
+    if (!res.success) {
+      alert(`⚠️ Error agregando gorra en Supabase: ${res.error}`);
+    } else {
+      showToast(`✓ Nueva gorra "${newProduct.name}" publicada en Supabase.`);
+    }
   };
 
-  const handleDeleteProduct = (productId: string) => {
+  const handleDeleteProduct = async (productId: string) => {
     setProducts(prev => prev.filter(p => p.id !== productId));
-    deleteProductFromCloud(productId);
-    showToast(`Gorra eliminada del catálogo.`);
+    const ok = await deleteProductFromCloud(productId);
+    if (!ok) {
+      alert('⚠️ Error eliminando gorra de Supabase.');
+    } else {
+      showToast(`Gorra eliminada de la nube.`);
+    }
   };
 
-  const handleUpdateHeroConfig = (config: HeroConfig) => {
+  const handleUpdateHeroConfig = async (config: HeroConfig) => {
     setHeroConfig(config);
-    syncHeroConfigToCloud(config);
-    showToast('✓ Portada actualizada y sincronizada en la nube.');
+    const res = await syncHeroConfigToCloud(config);
+    if (!res.success) {
+      alert(`⚠️ Error guardando portada en Supabase: ${res.error}`);
+    } else {
+      showToast('✓ Portada guardada y sincronizada en Supabase.');
+    }
   };
 
-  const handleResetDefaults = () => {
-    if (confirm('¿Deseas restablecer todos los productos a los valores predeterminados?')) {
+  const handleResetDefaults = async () => {
+    if (confirm('¿Deseas restablecer todos los productos a los valores predeterminados de fábrica?')) {
       setProducts(INITIAL_PRODUCTS);
       setSalesRecords(INITIAL_SALES_RECORDS);
-      localStorage.removeItem('hatgt_products_catalog');
-      localStorage.removeItem('hatgt_sales_history');
-      showToast('Valores iniciales restablecidos.');
+      await seedDatabaseIfEmpty(INITIAL_PRODUCTS, DEFAULT_HERO_CONFIG);
+      showToast('Valores de fábrica restablecidos en la nube.');
     }
   };
 
