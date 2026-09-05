@@ -79,6 +79,7 @@ const mapRowToProduct = (r: any): Product => ({
   sideImageUrl: r.side_image_url || undefined,
   backImageUrl: r.back_image_url || undefined,
   undervisorImageUrl: r.undervisor_image_url || undefined,
+  imageFit: r.image_fit || (r.image_url ? 'contain' : undefined),
   isBestSeller: Boolean(r.is_best_seller),
   isNewArrival: Boolean(r.is_new_arrival)
 });
@@ -109,6 +110,7 @@ const mapProductToRow = (p: Product) => ({
   side_image_url: p.sideImageUrl || null,
   back_image_url: p.backImageUrl || null,
   undervisor_image_url: p.undervisorImageUrl || null,
+  image_fit: p.imageFit || 'contain',
   is_best_seller: p.isBestSeller || false,
   is_new_arrival: p.isNewArrival || false,
   updated_at: new Date().toISOString()
@@ -302,3 +304,103 @@ export const seedDatabaseIfEmpty = async (
     return false;
   }
 };
+
+// --- OPTIMIZACIÓN Y COMPRESIÓN DE FOTOS DE CELULAR ---
+/**
+ * Comprime y optimiza fotos tomadas con el celular antes de enviarlas a Supabase.
+ * Transforma fotos pesadas de 5MB-15MB en imágenes nítidas de 80KB-160KB para que
+ * se guarden de forma ultrarrápida y no saturen la base de datos ni el ancho de banda móvil.
+ */
+export const compressImageFile = (
+  file: File, 
+  maxWidth = 1200, 
+  maxHeight = 1200, 
+  quality = 0.82
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+
+        // Mantener proporción original
+        if (width > maxWidth || height > maxHeight) {
+          if (width / height > maxWidth / maxHeight) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(event.target?.result as string);
+          return;
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convertir a JPEG optimizado
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedBase64);
+      };
+      img.onerror = () => resolve(event.target?.result as string);
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
+// --- SUSCRIPCIÓN EN TIEMPO REAL (MULTI-DISPOSITIVO) ---
+/**
+ * Escucha cambios en Supabase en tiempo real para que si editas una gorra o la portada
+ * desde un celular, los cambios aparezcan inmediatamente en cualquier otra computadora o móvil abierto.
+ */
+export const subscribeToCloudChanges = (
+  onProductsChange?: () => void,
+  onHeroChange?: () => void,
+  onSalesChange?: () => void
+) => {
+  const client = getSupabaseClient();
+  if (!client) return () => {};
+
+  try {
+    const channel = client
+      .channel('hatgt_realtime_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'hatgt_products' }, () => {
+        onProductsChange?.();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'hatgt_hero_config' }, () => {
+        onHeroChange?.();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'hatgt_sales_records' }, () => {
+        onSalesChange?.();
+      })
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
+  } catch (err) {
+    console.warn('Error suscribiendo a Supabase Realtime:', err);
+    return () => {};
+  }
+};
+

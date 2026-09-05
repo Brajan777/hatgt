@@ -45,6 +45,7 @@ export interface Product {
   sideImageUrl?: string;
   backImageUrl?: string;
   undervisorImageUrl?: string;
+  imageFit?: 'contain' | 'cover';
   isBestSeller?: boolean;
   isNewArrival?: boolean;
 }

@@ -15,6 +15,7 @@ interface CapVisualInteractiveProps {
   sideImageUrl?: string;
   backImageUrl?: string;
   undervisorImageUrl?: string;
+  imageFit?: 'contain' | 'cover';
 }
 
 export const CapVisualInteractive: React.FC<CapVisualInteractiveProps> = ({
@@ -30,7 +31,8 @@ export const CapVisualInteractive: React.FC<CapVisualInteractiveProps> = ({
   imageUrl,
   sideImageUrl,
   backImageUrl,
-  undervisorImageUrl
+  undervisorImageUrl,
+  imageFit = 'contain'
 }) => {
   const getColors = () => {
     // If explicit hex provided (e.g. from studio customizer)
@@ -117,18 +119,22 @@ export const CapVisualInteractive: React.FC<CapVisualInteractiveProps> = ({
       {/* --- FOTO REAL PERSONALIZADA (ADAPTADA AL MARCO) --- */}
       {activePhoto ? (
         <div className="relative w-full h-full flex items-center justify-center overflow-hidden z-0 rounded-lg">
-          {/* Fondo difuminado ambiental para que cualquier formato de foto llene el marco de forma armónica */}
+          {/* Fondo difuminado ambiental para dar profundidad y soporte a cualquier proporción */}
           <img 
             src={activePhoto} 
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover blur-xl opacity-25 scale-125 pointer-events-none"
+            className="absolute inset-0 w-full h-full object-cover blur-xl opacity-30 scale-125 pointer-events-none"
           />
-          {/* Foto nítida de la gorra encuadrada sin deformación ni cortes */}
+          {/* Foto nítida con opción de llenar marco (cover) o encuadre completo (contain) */}
           <img 
             src={activePhoto} 
             alt={patchLabel}
-            className="relative z-10 w-full h-full max-h-full max-w-full object-contain p-2 sm:p-3 drop-shadow-[0_12px_18px_rgba(0,0,0,0.3)] transition-transform duration-300 group-hover/canvas:scale-105"
+            className={`relative z-10 w-full h-full ${
+              imageFit === 'cover' 
+                ? 'object-cover object-center' 
+                : 'max-h-full max-w-full object-contain p-2 sm:p-3 drop-shadow-[0_12px_18px_rgba(0,0,0,0.3)]'
+            } transition-transform duration-300 group-hover/canvas:scale-105`}
             referrerPolicy="no-referrer"
           />
         </div>

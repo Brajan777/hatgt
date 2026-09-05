@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
   ShoppingBag, 
   Search, 
@@ -38,7 +38,8 @@ import {
   deleteProductFromCloud, 
   syncHeroConfigToCloud, 
   syncSaleToCloud, 
-  seedDatabaseIfEmpty
+  seedDatabaseIfEmpty,
+  subscribeToCloudChanges
 } from './lib/supabase';
 
 export default function App() {
@@ -149,30 +150,41 @@ export default function App() {
     }
   }, [heroConfig]);
 
-  // Carga inicial y sincronización con Supabase (Base de datos en la Nube)
+  // Función para refrescar datos desde Supabase (manual o en tiempo real)
+  const refreshCloudData = useCallback(async (silent = true) => {
+    try {
+      const [cloudProds, cloudHero, cloudSales] = await Promise.all([
+        fetchProductsFromCloud(),
+        fetchHeroConfigFromCloud(),
+        fetchSalesFromCloud()
+      ]);
+
+      if (cloudProds && cloudProds.length > 0) {
+        setProducts(cloudProds);
+      }
+      if (cloudHero) {
+        setHeroConfig(cloudHero);
+      }
+      if (cloudSales && cloudSales.length > 0) {
+        setSalesRecords(cloudSales);
+      }
+
+      if (!silent) {
+        showToast('✓ Tienda sincronizada con la base de datos en la nube.');
+      }
+    } catch (err) {
+      console.warn('Error refrescando datos de Supabase:', err);
+    }
+  }, []);
+
+  // Carga inicial y suscripción Realtime con Supabase (Base de datos en la Nube)
   useEffect(() => {
     let isMounted = true;
     const initCloudSync = async () => {
       try {
-        // 1. Si las tablas de Supabase están recién creadas, poblar con datos iniciales
         await seedDatabaseIfEmpty(INITIAL_PRODUCTS, DEFAULT_HERO_CONFIG);
-
-        // 2. Cargar productos desde Supabase
-        const cloudProducts = await fetchProductsFromCloud();
-        if (isMounted && cloudProducts && cloudProducts.length > 0) {
-          setProducts(cloudProducts);
-        }
-
-        // 3. Cargar configuración de la portada desde Supabase
-        const cloudHero = await fetchHeroConfigFromCloud();
-        if (isMounted && cloudHero) {
-          setHeroConfig(cloudHero);
-        }
-
-        // 4. Cargar ventas desde Supabase
-        const cloudSales = await fetchSalesFromCloud();
-        if (isMounted && cloudSales && cloudSales.length > 0) {
-          setSalesRecords(cloudSales);
+        if (isMounted) {
+          await refreshCloudData(true);
         }
       } catch (err) {
         console.warn('Error inicializando datos de Supabase:', err);
@@ -180,8 +192,19 @@ export default function App() {
     };
 
     initCloudSync();
-    return () => { isMounted = false; };
-  }, []);
+
+    // Suscripción en tiempo real: cualquier cambio en otro móvil o PC se refleja al instante
+    const unsubscribe = subscribeToCloudChanges(
+      () => refreshCloudData(true),
+      () => refreshCloudData(true),
+      () => refreshCloudData(true)
+    );
+
+    return () => { 
+      isMounted = false; 
+      unsubscribe();
+    };
+  }, [refreshCloudData]);
 
   const categories = [
     'Todas',
@@ -785,6 +808,7 @@ export default function App() {
                         paletteKey={product.colors[0]?.paletteKey || 'classic-dark'} 
                         viewAngle="front"
                         imageUrl={product.imageUrl}
+                        imageFit={product.imageFit}
                         size="normal"
                       />
                       
@@ -1191,6 +1215,7 @@ export default function App() {
         onDeleteProduct={handleDeleteProduct}
         onResetDefaults={handleResetDefaults}
         onAddSaleRecord={(sale) => setSalesRecords(prev => [sale, ...prev])}
+        onRefreshCloud={() => refreshCloudData(false)}
       />
 
     </div>

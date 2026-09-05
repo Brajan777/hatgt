@@ -25,12 +25,14 @@ import {
   Sparkles,
   Check,
   ImagePlus,
-  Database
+  Database,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { CapAngle, CapColor, Product, SaleRecord, HeroConfig } from '../types';
 import { CapVisualInteractive } from './CapVisualInteractive';
 import { DEFAULT_HERO_CONFIG } from '../data/products';
-import { getSupabaseCredentials } from '../lib/supabase';
+import { getSupabaseCredentials, compressImageFile } from '../lib/supabase';
 
 interface AdminPanelProps {
   isOpen: boolean;
@@ -44,6 +46,7 @@ interface AdminPanelProps {
   onDeleteProduct: (productId: string) => void;
   onResetDefaults: () => void;
   onAddSaleRecord: (sale: SaleRecord) => void;
+  onRefreshCloud?: () => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -56,12 +59,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onUpdateProduct,
   onAddProduct,
   onDeleteProduct,
-  onResetDefaults
+  onResetDefaults,
+  onRefreshCloud
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'hero' | 'dashboard' | 'sales'>('products');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
   
   // Hero Editing State
   const [editingHero, setEditingHero] = useState<HeroConfig>(() => ({ ...heroConfig }));
@@ -81,25 +87,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
 
   // Hero Handlers
-  const handleHeroFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHeroFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setEditingHero(prev => ({
-          ...prev,
-          customImageUrl: event.target?.result as string
-        }));
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      setIsCompressing(true);
+      const optimizedBase64 = await compressImageFile(file, 1400, 1400, 0.84);
+      setEditingHero(prev => ({
+        ...prev,
+        customImageUrl: optimizedBase64
+      }));
+    } catch (err) {
+      console.error('Error optimizando foto de portada:', err);
+    } finally {
+      setIsCompressing(false);
+    }
+  };
+
+  const handleManualRefreshCloud = () => {
+    if (onRefreshCloud) {
+      setIsRefreshing(true);
+      onRefreshCloud();
+      setTimeout(() => setIsRefreshing(false), 800);
+    }
   };
 
   const handleSaveHero = (e: React.FormEvent) => {
     e.preventDefault();
     onUpdateHeroConfig(editingHero);
-    setSaveSuccessMsg('✓ ¡Portada (Hero) actualizada con éxito! Ya se ve reflejada en la tienda.');
+    setSaveSuccessMsg('✓ ¡Portada (Hero) guardada y sincronizada en la nube de Supabase!');
     setTimeout(() => setSaveSuccessMsg(''), 3500);
   };
 
@@ -211,20 +227,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setPreviewAngle('front');
   };
 
-  // Image Upload Handler (reads as Base64 Data URL)
-  const handleFileUpload = (field: 'imageUrl' | 'sideImageUrl' | 'backImageUrl' | 'undervisorImageUrl', e: React.ChangeEvent<HTMLInputElement>) => {
+  // Image Upload Handler (reads & optimizes as Base64 Data URL)
+  const handleFileUpload = async (field: 'imageUrl' | 'sideImageUrl' | 'backImageUrl' | 'undervisorImageUrl', e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingProduct || !e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setEditingProduct({
-          ...editingProduct,
-          [field]: event.target.result as string
-        });
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      setIsCompressing(true);
+      const optimizedBase64 = await compressImageFile(file, 1200, 1200, 0.82);
+      setEditingProduct(prev => prev ? ({
+        ...prev,
+        [field]: optimizedBase64
+      }) : null);
+    } catch (err) {
+      console.error('Error optimizando foto de producto:', err);
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   // Features list helpers
@@ -329,12 +347,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             {isAuthenticated && (
-              <button
-                onClick={handleLogout}
-                className="bg-stone-800 hover:bg-stone-700 text-stone-300 text-[11px] sm:text-xs font-bold px-2.5 py-1.5 rounded-lg border border-stone-700 transition-colors"
-              >
-                Salir
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleManualRefreshCloud}
+                  disabled={isRefreshing}
+                  className="bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 text-[11px] sm:text-xs font-bold px-2.5 py-1.5 rounded-lg border border-emerald-500/60 flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+                  title="Sincronizar datos con la base de datos Supabase"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Sincronizar Nube</span>
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="bg-stone-800 hover:bg-stone-700 text-stone-300 text-[11px] sm:text-xs font-bold px-2.5 py-1.5 rounded-lg border border-stone-700 transition-colors"
+                >
+                  Salir
+                </button>
+              </>
             )}
             <button
               onClick={onClose}
@@ -346,6 +376,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </button>
           </div>
         </div>
+
+        {/* COMPRESSING INDICATOR FLOATING BANNER */}
+        {isCompressing && (
+          <div className="bg-amber-400 text-stone-950 px-4 py-2 text-center font-black text-xs flex items-center justify-center gap-2 shadow-md border-b-2 border-stone-950">
+            <Loader2 className="w-4 h-4 animate-spin text-stone-950" />
+            Optimizando fotografía para la nube (Ajustando resolución y peso)...
+          </div>
+        )}
 
         {/* LOGIN SCREEN IF NOT AUTHENTICATED */}
         {!isAuthenticated ? (
@@ -736,6 +774,54 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                 <p className="text-[11px] text-stone-300 mt-1">
                                   Puedes subir archivos de fotos directamente desde tu dispositivo o pegar enlaces web de imágenes. Si no asignas una foto, se mostrará el diseño gráfico interactivo Hatgt.
                                 </p>
+                              </div>
+                              {/* Modo de Ajuste de Fotos */}
+                              <div className="bg-stone-900 p-3.5 rounded-xl border border-stone-800 space-y-2">
+                                <label className="font-black text-amber-400 text-xs flex items-center gap-1.5">
+                                  <Sparkles className="w-4 h-4 text-amber-400" />
+                                  Modo de Ajuste en la Tienda (Fotos Verticales / Horizontales):
+                                </label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingProduct({ ...editingProduct, imageFit: 'contain' })}
+                                    className={`p-2.5 rounded-xl border text-left flex items-start gap-2.5 transition-all ${
+                                      (editingProduct.imageFit || 'contain') === 'contain'
+                                        ? 'bg-amber-400/20 border-amber-400 text-amber-300 shadow-md'
+                                        : 'bg-stone-950 border-stone-700 text-stone-400 hover:border-stone-500'
+                                    }`}
+                                  >
+                                    <div className={`w-4 h-4 rounded-full border-2 mt-0.5 flex items-center justify-center flex-shrink-0 ${
+                                      (editingProduct.imageFit || 'contain') === 'contain' ? 'border-amber-400 bg-amber-400' : 'border-stone-600'
+                                    }`}>
+                                      {(editingProduct.imageFit || 'contain') === 'contain' && <Check className="w-2.5 h-2.5 text-stone-950 stroke-[3]" />}
+                                    </div>
+                                    <div>
+                                      <p className="font-bold text-xs text-white">Ajustar Gorra Completa</p>
+                                      <p className="text-[10px] text-stone-400">Recomendado. Muestra la gorra entera sin cortes y con fondo ambiental difuminado.</p>
+                                    </div>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingProduct({ ...editingProduct, imageFit: 'cover' })}
+                                    className={`p-2.5 rounded-xl border text-left flex items-start gap-2.5 transition-all ${
+                                      editingProduct.imageFit === 'cover'
+                                        ? 'bg-amber-400/20 border-amber-400 text-amber-300 shadow-md'
+                                        : 'bg-stone-950 border-stone-700 text-stone-400 hover:border-stone-500'
+                                    }`}
+                                  >
+                                    <div className={`w-4 h-4 rounded-full border-2 mt-0.5 flex items-center justify-center flex-shrink-0 ${
+                                      editingProduct.imageFit === 'cover' ? 'border-amber-400 bg-amber-400' : 'border-stone-600'
+                                    }`}>
+                                      {editingProduct.imageFit === 'cover' && <Check className="w-2.5 h-2.5 text-stone-950 stroke-[3]" />}
+                                    </div>
+                                    <div>
+                                      <p className="font-bold text-xs text-white">Llenar Marco (Estilo Catálogo)</p>
+                                      <p className="text-[10px] text-stone-400">La foto cubre el 100% del marco sin bordes vacíos.</p>
+                                    </div>
+                                  </button>
+                                </div>
                               </div>
 
                               {/* Foto Frontal */}
@@ -1140,6 +1226,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               sideImageUrl={editingProduct.sideImageUrl}
                               backImageUrl={editingProduct.backImageUrl}
                               undervisorImageUrl={editingProduct.undervisorImageUrl}
+                              imageFit={editingProduct.imageFit}
                               size="large"
                             />
 

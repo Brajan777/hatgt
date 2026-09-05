@@ -153,6 +153,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   sideImageUrl={product.sideImageUrl}
                   backImageUrl={product.backImageUrl}
                   undervisorImageUrl={product.undervisorImageUrl}
+                  imageFit={product.imageFit}
                   size="large"
                 />
 
